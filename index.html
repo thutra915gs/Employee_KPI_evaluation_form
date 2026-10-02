@@ -1604,6 +1604,7 @@
     let activeBonuses = new Set();
     let currentWorkflow = "self";
 
+    // HÀM KIỂM TRA CHỨC VỤ ĐẶC THÙ
     function isToTruong() {
       const pos = (document.getElementById("empPosition").value || "").toLowerCase();
       return pos.includes("tổ trưởng") || pos.includes("to truong");
@@ -1620,7 +1621,9 @@
 
     function updateActionButtons() {
       const btnLeadText = document.getElementById("btnShareLeadText");
-      if (isToTruong()) {
+      if (currentWorkflow === "lead") {
+        btnLeadText.textContent = "Gửi link cho BGH";
+      } else if (isToTruong()) {
         btnLeadText.textContent = "Gửi link cho BGH";
       } else if (isPhoHieuTruong() || currentMainTab === "bgh") {
         btnLeadText.textContent = "GỬI LINK CHO HIỆU TRƯỞNG";
@@ -1769,8 +1772,11 @@
       window.location.href = window.location.pathname;
     }
 
+    // XỬ LÝ HÀNH ĐỘNG KHI BẤM NÚT CHIA SẺ LINK
     function handleShareButtonAction() {
-      if (isToTruong()) {
+      if (currentWorkflow === "lead") {
+        generateShareLink('bgh');
+      } else if (isToTruong()) {
         generateShareLink('bgh');
       } else if (isPhoHieuTruong() || currentMainTab === "bgh") {
         generateShareLink('ht');
@@ -1800,6 +1806,12 @@
 
       if (!dataToPack.empName) {
         showCustomModal("Vui lòng chọn họ và tên viên chức trước khi tạo link bàn giao!");
+        return;
+      }
+
+      if (currentWorkflow === "lead" && !dataToPack.leadName) {
+        showCustomModal("Đồng chí Tổ trưởng vui lòng nhập họ tên ở ô 'Tổ trưởng thẩm định' trước khi gửi cho Ban giám hiệu!");
+        document.getElementById("leadApproverName").focus();
         return;
       }
 
@@ -1942,7 +1954,7 @@
             <span class="file-tag">
               <i class="fa-solid fa-file-lines"></i>
               <span class="file-tag-name" title="${f.name}" onclick="previewFile('${item.code}', ${fIdx})">${f.name}</span>
-              ${!isSelfLocked ? `<span class="file-tag-remove" onclick="removeFile('${item.code}',${fIdx})">✕</span>` : ''}
+              ${!isSelfLocked ? `<span class="file-tag-remove" onclick="removeFile('${item.code}', ${fIdx})">✕</span>` : ''}
             </span>
           `).join("");
         }
@@ -2398,55 +2410,42 @@
       `;
     }
 
-    // TẢI FILE PDF KÝ SỐ (NEO VÀO DOM TRÁNH NGHẼN, KÈM DỰ PHÒNG THƯ VIỆN)
-    function ensureHtml2Pdf(callback) {
-      if (typeof html2pdf !== 'undefined') {
-        callback();
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = "https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js";
-      script.onload = () => { callback(); };
-      script.onerror = () => {
-        alert("Không thể tải thư viện PDF. Hệ thống sẽ mở hộp thoại in của trình duyệt để chị chọn 'Lưu dưới dạng PDF'!");
-        window.print();
-      };
-      document.head.appendChild(script);
-    }
-
+    // ==========================================
+    // TẢI FILE PDF KÝ SỐ (NEO VÀO DOM TRÁNH NGHẼN)
+    // ==========================================
     function downloadPDFForSign() {
-      ensureHtml2Pdf(() => {
-        const empName = document.getElementById("empName").value || "VienChuc";
-        const evalPeriod = (document.getElementById("evalPeriod").value || "Thang_09_2026").replace(/[\/\s]/g, "_");
-        const fileName = `KPI_915_${empName.replace(/\s+/g, "_")}_${evalPeriod}.pdf`;
+      const empName = document.getElementById("empName").value || "VienChuc";
+      const evalPeriod = (document.getElementById("evalPeriod").value || "Thang_09_2026").replace(/[\/\s]/g, "_");
+      const fileName = `KPI_915_${empName.replace(/\s+/g, "_")}_${evalPeriod}.pdf`;
 
-        showCustomModal("Đang khởi tạo và kết xuất file PDF chuẩn A4, vui lòng đợi trong giây lát...");
+      showCustomModal("Đang khởi tạo và kết xuất file PDF chuẩn A4, vui lòng đợi trong giây lát...");
 
-        const tempContainer = document.createElement("div");
-        tempContainer.style.position = "absolute";
-        tempContainer.style.left = "-9999px";
-        tempContainer.style.top = "0";
-        tempContainer.style.width = "794px";
-        tempContainer.style.backgroundColor = "#ffffff";
-        tempContainer.innerHTML = generateOfficialReportHtml();
-        document.body.appendChild(tempContainer);
+      const tempContainer = document.createElement("div");
+      tempContainer.style.position = "absolute";
+      tempContainer.style.left = "-9999px";
+      tempContainer.style.top = "0";
+      tempContainer.style.width = "794px";
+      tempContainer.style.backgroundColor = "#ffffff";
+      tempContainer.innerHTML = generateOfficialReportHtml();
+      document.body.appendChild(tempContainer);
 
-        const opt = {
-          margin: [8, 8, 8, 8],
-          filename: fileName,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            letterRendering: true,
-            logging: false,
-            scrollY: 0,
-            scrollX: 0
-          },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak: { mode: ['css', 'legacy'] }
-        };
+      const opt = {
+        margin: [8, 8, 8, 8],
+        filename: fileName,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+          logging: false,
+          scrollY: 0,
+          scrollX: 0
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+      };
 
+      if (typeof html2pdf !== 'undefined') {
         html2pdf().set(opt).from(tempContainer).save().then(() => {
           if (document.body.contains(tempContainer)) {
             document.body.removeChild(tempContainer);
@@ -2461,9 +2460,16 @@
             document.body.removeChild(tempContainer);
           }
           console.error("Lỗi html2pdf:", err);
-          showCustomModal("Lỗi khi kết xuất file PDF: " + (err.message || err));
+          showCustomModal("Hệ thống chuyển sang chế độ in của trình duyệt. Thầy/Cô chọn 'Lưu dưới dạng PDF' tại ô Máy in để lưu file nhé!");
+          window.print();
         });
-      });
+      } else {
+        if (document.body.contains(tempContainer)) {
+          document.body.removeChild(tempContainer);
+        }
+        showCustomModal("Hệ thống chuyển sang chế độ in của trình duyệt. Thầy/Cô chọn 'Lưu dưới dạng PDF' tại ô Máy in để lưu file nhé!");
+        window.print();
+      }
     }
   </script>
 </body>
