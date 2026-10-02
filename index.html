@@ -8,9 +8,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <!-- THƯ VIỆN KẾT XUẤT PDF CHUẨN KÝ SỐ KHỔ A4 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <style>
     :root {
+      /* TÔNG MÀU XANH LỤC VÀ CAM CHỦ ĐẠO */
       --green-dark: #064e3b;
       --green-main: #047857;
       --green-light: #059669;
@@ -60,7 +63,7 @@
     }
 
     .header-container {
-      max-width: 1240px;
+      max-width: 1260px;
       margin: 0 auto;
       display: flex;
       align-items: center;
@@ -133,8 +136,8 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 8px 14px;
-      font-size: 0.84rem;
+      padding: 8px 13px;
+      font-size: 0.83rem;
       font-weight: 700;
       border-radius: 8px;
       cursor: pointer;
@@ -165,15 +168,26 @@
     .btn-white {
       background: white;
       color: var(--green-dark);
+      border: 1px solid rgba(255, 255, 255, 0.9);
     }
     .btn-white:hover {
       background: var(--orange-light);
       color: var(--orange-hover);
     }
 
+    .btn-sign-pdf {
+      background: #fef08a;
+      color: #854d0e;
+      border: 1px solid #eab308;
+    }
+    .btn-sign-pdf:hover {
+      background: #fde047;
+      color: #713f12;
+    }
+
     main {
       flex: 1;
-      max-width: 1240px;
+      max-width: 1260px;
       width: 100%;
       margin: 20px auto;
       padding: 0 16px;
@@ -641,7 +655,7 @@
     }
 
     .footer-inner {
-      max-width: 1240px;
+      max-width: 1260px;
       margin: 0 auto;
       display: flex;
       align-items: center;
@@ -769,7 +783,7 @@
       margin-top: 6px;
     }
 
-    /* CUSTOM POPUP THÔNG BÁO THAY THẾ CHO ALERT CỦA TRÌNH DUYỆT */
+    /* CUSTOM MODAL THÔNG BÁO */
     .custom-modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -914,11 +928,18 @@
         <button id="btnShareLead" class="btn btn-orange-primary" onclick="handleShareButtonAction()">
           <i class="fa-solid fa-share-nodes"></i> <span id="btnShareLeadText">Gửi link cho tổ trưởng</span>
         </button>
+        <!-- CÁC TÍNH NĂNG XUẤT BÁO CÁO PHỤC VỤ KÝ SỐ VÀ NỘP MINH CHỨNG -->
+        <button class="btn btn-sign-pdf" onclick="downloadPDFForSign()" title="Xuất file PDF chuẩn A4 để tải lên ứng dụng Ký số (VNPT SmartCA, Viettel CA, USB Token...)">
+          <i class="fa-solid fa-file-signature"></i> Tải PDF ký số
+        </button>
+        <button class="btn btn-orange-outline" onclick="exportWordDoc()" title="Tải file Word (.doc) để lưu trữ hoặc chỉnh sửa">
+          <i class="fa-solid fa-file-word"></i> Tải Word (.doc)
+        </button>
+        <button class="btn btn-orange-outline" onclick="window.print()" title="In ra giấy hoặc xem trước trang in">
+          <i class="fa-solid fa-print"></i> In A4
+        </button>
         <button class="btn btn-white" onclick="quickFill100()">
           <i class="fa-solid fa-wand-magic-sparkles"></i> Điền 100%
-        </button>
-        <button class="btn btn-orange-outline" onclick="window.print()">
-          <i class="fa-solid fa-print"></i> In / Xuất PDF (A4)
         </button>
         <button class="btn btn-orange-outline" onclick="resetForm()">
           <i class="fa-solid fa-rotate-left"></i> Làm mới
@@ -1252,19 +1273,19 @@
       <div class="signature-grid" id="signatureGrid">
         <div>
           <div class="sig-role">Người Tự Đánh Giá</div>
-          <div class="sig-sub">(Ký và ghi rõ họ tên)</div>
+          <div class="sig-sub">(Ký số / Ký và ghi rõ họ tên)</div>
           <div class="sig-name" id="sigSelfName">Nguyễn Thị Thu Trà</div>
         </div>
         <div id="sigColLead">
           <div class="sig-role">Tổ Trưởng Thẩm Định</div>
-          <div class="sig-sub">(Ký nhận xét và đánh giá)</div>
+          <div class="sig-sub">(Ký số / Ký nhận xét và đánh giá)</div>
           <div>
             <input type="text" id="leadApproverName" class="sig-input-name" placeholder="Nhập tên Tổ trưởng..." value="" oninput="autoSave()">
           </div>
         </div>
         <div>
           <div class="sig-role">Hiệu Trưởng Phê Duyệt</div>
-          <div class="sig-sub">(Ký tên và đóng dấu)</div>
+          <div class="sig-sub">(Ký số và đóng dấu điện tử)</div>
           <div class="sig-name">Bùi Thị Thanh Hoàn</div>
         </div>
       </div>
@@ -1300,7 +1321,7 @@
     </div>
   </footer>
 
-  <!-- MODAL THÔNG BÁO TÙY BIẾN (KHÔNG BỊ TRÌNH DUYỆT CHÈN DOMAIN) -->
+  <!-- MODAL THÔNG BÁO TÙY BIẾN -->
   <div id="customModal" class="custom-modal-overlay" style="display: none;">
     <div class="custom-modal-box">
       <div class="custom-modal-header">
@@ -1327,7 +1348,6 @@
       }
     }
 
-    // HÀM HIỂN THỊ MODAL THÔNG BÁO CHUẨN
     function showCustomModal(msg) {
       document.getElementById("customModalMessage").innerHTML = msg;
       document.getElementById("customModal").style.display = "flex";
@@ -1572,15 +1592,6 @@
       }
     };
 
-    const BONUS_KPI_LIST = [
-      { id: "BONUS-01", text: "Bồi dưỡng học sinh giỏi đạt giải: Cấp Phường (+3đ/giải), Cấp Tỉnh (+5đ/giải), Cấp Quốc gia (+8đ/giải)", pts: 5 },
-      { id: "BONUS-02", text: "Đạt danh hiệu GVDG/Thao giảng xuất sắc: Cấp trường (+3đ), Cấp Phường/Tỉnh (+5đ)", pts: 5 },
-      { id: "BONUS-03", text: "Lớp chủ nhiệm Nhất bảng thi đua theo Phân hiệu (+3đ); Cảm hóa thành công 01 học sinh cá biệt (+3đ)", pts: 3 },
-      { id: "BONUS-04", text: "Có Sáng kiến kinh nghiệm / KHDH số được phê duyệt, công nhận (+3 đến +5đ)", pts: 4 },
-      { id: "BONUS-05", text: "CB, GV, NV có đóng góp xuất sắc ngoài nhiệm vụ, tự sửa chữa lớn CSVC/CNTT (+3 đến +5đ)", pts: 4 },
-      { id: "BONUS-06", text: "Xung kích phòng chống thiên tai, hoàn thành xuất sắc nhiệm vụ đột xuất (+2 đến +4đ)", pts: 3 }
-    ];
-
     let currentMainTab = "gvcn";
     let currentRoleKey = "gvcn";
     let currentScores = {};
@@ -1753,7 +1764,6 @@
       window.location.href = window.location.pathname;
     }
 
-    // XỬ LÝ HÀNH ĐỘNG KHI BẤM NÚT CHIA SẺ LINK
     function handleShareButtonAction() {
       if (isToTruong()) {
         generateShareLink('bgh');
@@ -1883,7 +1893,6 @@
       const sigColLead = document.getElementById("sigColLead");
       const sigGrid = document.getElementById("signatureGrid");
 
-      // CẤU HÌNH GIAO DIỆN 2 CỘT HOẶC 3 CỘT
       if (twoCols) {
         thLead.style.display = "none";
         thSelf.textContent = "1. Cá nhân tự đánh giá";
@@ -1952,7 +1961,7 @@
               ${isSelfLocked ? 'readonly title="Điểm tự chấm đã khóa"' : ''}
               oninput="handleScoreChange('${item.code}', 'self', this.value, ${item.max})" />
           </td>
-          <!-- 2. TỔ THẨM ĐỊNH (ẨN ĐỐI VỚI TỔ TRƯỞNG & PHÓ HIỆU TRƯỞNG) -->
+          <!-- 2. TỔ THẨM ĐỊNH -->
           ${!twoCols ? `
           <td style="text-align: center; vertical-align: middle;">
             <input type="number" step="0.5" min="0" max="${item.max}" 
@@ -2211,6 +2220,250 @@
         } catch (e) {}
       }
       initDefaultScores();
+    }
+
+    // ==========================================
+    // TÍNH NĂNG XUẤT VĂN BẢN KÝ SỐ CHUẨN A4 VÀ WORD
+    // ==========================================
+    function generateOfficialReportHtml() {
+      const cfg = KPI_ROLES[currentRoleKey] || KPI_ROLES["gvcn"];
+      const twoCols = isTwoColumns();
+      const empName = document.getElementById("empName").value || "......................";
+      const empPosition = document.getElementById("empPosition").value || "......................";
+      const empDepartment = document.getElementById("empDepartment").value || "......................";
+      const evalPeriod = document.getElementById("evalPeriod").value || "Tháng 09/2026";
+      const valCol1 = document.getElementById("val-col1").textContent;
+      const valCol2 = document.getElementById("val-col2").textContent;
+      const valBonus = document.getElementById("val-bonus").textContent;
+      const valTotal = document.getElementById("val-total").textContent;
+      const rankText = document.getElementById("badge-rank").textContent;
+      const leadName = document.getElementById("leadApproverName").value || "......................";
+
+      let rowsHtml = "";
+      let currentPillar = null;
+
+      cfg.items.forEach(item => {
+        if (item.pillar !== currentPillar) {
+          currentPillar = item.pillar;
+          rowsHtml += `
+            <tr style="background-color: #f1f5f9; font-weight: bold;">
+              <td colspan="${twoCols ? 5 : 6}" style="padding: 7px 10px; text-transform: uppercase; color: #064e3b; border: 1px solid #333;">
+                ${item.pillarName}
+              </td>
+            </tr>
+          `;
+        }
+
+        const scoreObj = currentScores[item.code] || { self: item.max, lead: item.max, bgh: item.max, note: "", files: [] };
+        const cleanNote = (scoreObj.note || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        let attachFilesList = "";
+        if (scoreObj.files && scoreObj.files.length > 0) {
+          attachFilesList = "<br><strong>[Tệp đính kèm]:</strong> " + scoreObj.files.map(f => f.name).join("; ");
+        }
+
+        const selfVal = scoreObj.self !== undefined ? scoreObj.self : item.max;
+        const leadVal = scoreObj.lead !== undefined ? scoreObj.lead : item.max;
+        const bghVal = scoreObj.bgh !== undefined ? scoreObj.bgh : (scoreObj.lead !== undefined ? scoreObj.lead : item.max);
+
+        rowsHtml += `
+          <tr>
+            <td style="text-align: center; border: 1px solid #333; padding: 6px; font-weight: bold;">${item.code}</td>
+            <td style="border: 1px solid #333; padding: 6px;">
+              <strong>${item.title}</strong>
+              <div style="font-size: 11px; color: #444; margin-top: 3px;">${item.note}</div>
+            </td>
+            <td style="text-align: center; border: 1px solid #333; padding: 6px; font-weight: bold;">${item.max}</td>
+            <td style="text-align: center; border: 1px solid #333; padding: 6px; font-weight: bold;">${selfVal}</td>
+            ${!twoCols ? `<td style="text-align: center; border: 1px solid #333; padding: 6px; font-weight: bold;">${leadVal}</td>` : ''}
+            <td style="text-align: center; border: 1px solid #333; padding: 6px; font-weight: bold;">${bghVal}</td>
+            <td style="border: 1px solid #333; padding: 6px; font-size: 11px;">
+              ${cleanNote || "—"}
+              ${attachFilesList}
+            </td>
+          </tr>
+        `;
+      });
+
+      // BẢNG BONUS ĐÃ ĐẠT
+      let bonusRowsHtml = "";
+      BONUS_KPI_LIST.forEach(b => {
+        if (activeBonuses.has(b.id)) {
+          bonusRowsHtml += `• ${b.text} (+${b.pts}đ)<br>`;
+        }
+      });
+      if (!bonusRowsHtml) bonusRowsHtml = "Không có điểm thưởng trong kỳ.";
+
+      return `
+        <div style="font-family: 'Times New Roman', Times, serif; color: #000; padding: 15px 20px; line-height: 1.45; font-size: 13pt;">
+          <!-- QUỐC HIỆU & TIÊU NGỮ -->
+          <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 15px;">
+            <tr style="border: none;">
+              <td style="width: 45%; border: none; text-align: center; vertical-align: top;">
+                <span style="font-size: 11.5pt;">UBND PHƯỜNG GIA SÀNG</span><br>
+                <strong style="font-size: 12pt;">TRƯỜNG TIỂU HỌC VÀ THCS 915 GIA SÀNG</strong><br>
+                <span style="font-size: 11pt;">Số: ...../QĐ-TH&THCS915</span>
+                <div style="width: 110px; height: 1px; background: #000; margin: 4px auto 0;"></div>
+              </td>
+              <td style="width: 55%; border: none; text-align: center; vertical-align: top;">
+                <strong style="font-size: 12pt;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong><br>
+                <strong style="font-size: 12pt;">Độc lập - Tự do - Hạnh phúc</strong>
+                <div style="width: 150px; height: 1px; background: #000; margin: 4px auto 0;"></div>
+                <p style="font-style: italic; font-size: 11.5pt; margin-top: 5px;">Gia Sàng, ngày 15 tháng 9 năm 2026</p>
+              </td>
+            </tr>
+          </table>
+
+          <!-- TIÊU ĐỀ BÁO CÁO -->
+          <div style="text-align: center; margin: 20px 0 15px;">
+            <h2 style="font-size: 14pt; font-weight: bold; text-transform: uppercase; margin: 0 0 5px;">PHIẾU ĐÁNH GIÁ, XẾP LOẠI MỨC ĐỘ HOÀN THÀNH NHIỆM VỤ THEO CHỈ SỐ KPI</h2>
+            <p style="font-style: italic; font-size: 11pt; margin: 0;">(Ban hành kèm theo Quyết định số ...../QĐ-TH&THCS915 ngày 15/9/2026 của Hiệu trưởng)</p>
+          </div>
+
+          <!-- THÔNG TIN VIÊN CHỨC -->
+          <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 12px; font-size: 12pt;">
+            <tr style="border: none;">
+              <td style="border: none; padding: 3px 0; width: 50%;"><strong>Họ và tên viên chức:</strong> ${empName}</td>
+              <td style="border: none; padding: 3px 0; width: 50%;"><strong>Chức vụ / Vị trí:</strong> ${empPosition}</td>
+            </tr>
+            <tr style="border: none;">
+              <td style="border: none; padding: 3px 0;"><strong>Tổ Chuyên môn / Bộ phận:</strong> ${empDepartment}</td>
+              <td style="border: none; padding: 3px 0;"><strong>Kỳ đánh giá:</strong> ${evalPeriod}</td>
+            </tr>
+          </table>
+
+          <!-- TỔNG HỢP KẾT QUẢ ĐÁNH GIÁ -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 11.5pt; text-align: center;">
+            <tr style="background: #f1f5f9;">
+              <th style="border: 1px solid #333; padding: 6px;">Phần I: Tiêu chí chung</th>
+              <th style="border: 1px solid #333; padding: 6px;">Phần II: Chuyên môn VTVL</th>
+              <th style="border: 1px solid #333; padding: 6px;">Điểm thưởng (Bonus)</th>
+              <th style="border: 1px solid #333; padding: 6px;">Tổng điểm KPI (Max 115)</th>
+              <th style="border: 1px solid #333; padding: 6px;">Xếp loại thi đua</th>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #333; padding: 6px; font-weight: bold;">${valCol1} / 30 đ</td>
+              <td style="border: 1px solid #333; padding: 6px; font-weight: bold;">${valCol2} / 70 đ</td>
+              <td style="border: 1px solid #333; padding: 6px; font-weight: bold; color: #b45309;">+${valBonus} đ</td>
+              <td style="border: 1px solid #333; padding: 6px; font-weight: bold; font-size: 12pt; color: #064e3b;">${valTotal} / 115 đ</td>
+              <td style="border: 1px solid #333; padding: 6px; font-weight: bold;">${rankText}</td>
+            </tr>
+          </table>
+
+          <!-- BẢNG ĐIỂM CHI TIẾT -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 10.5pt;">
+            <thead>
+              <tr style="background-color: #f1f5f9; text-align: center;">
+                <th style="width: 60px; border: 1px solid #333; padding: 6px;">Mã KPI</th>
+                <th style="border: 1px solid #333; padding: 6px;">Nội dung tiêu chí & Hướng dẫn định lượng</th>
+                <th style="width: 55px; border: 1px solid #333; padding: 6px;">Điểm chuẩn</th>
+                <th style="width: 65px; border: 1px solid #333; padding: 6px;">${twoCols ? 'Cá nhân tự chấm' : 'Tự chấm'}</th>
+                ${!twoCols ? `<th style="width: 65px; border: 1px solid #333; padding: 6px;">Tổ thẩm định</th>` : ''}
+                <th style="width: 65px; border: 1px solid #333; padding: 6px;">${twoCols ? (isToTruong() ? 'BGH duyệt' : 'Hiệu trưởng duyệt') : 'BGH duyệt'}</th>
+                <th style="width: 160px; border: 1px solid #333; padding: 6px;">Ghi chú & Tệp minh chứng</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+
+          <!-- KÊ KHAI ĐIỂM THƯỞNG -->
+          <div style="border: 1px dashed #444; padding: 8px 12px; font-size: 11pt; margin-bottom: 18px; border-radius: 4px;">
+            <strong>Kê khai thành tích điểm thưởng cống hiến vượt mức (Bonus KPI):</strong><br>
+            <span style="font-size: 10.5pt; color: #333;">${bonusRowsHtml}</span>
+          </div>
+
+          <!-- KHUNG CHỮ KÝ PHÊ DUYỆT (KÝ SỐ) -->
+          <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 25px; text-align: center; font-size: 12pt; page-break-inside: avoid;">
+            <tr style="border: none;">
+              <td style="border: none; width: ${twoCols ? '50%' : '33.3%'}; vertical-align: top;">
+                <strong>NGƯỜI TỰ ĐÁNH GIÁ</strong><br>
+                <span style="font-style: italic; font-size: 10.5pt;">(Ký số / Ký và ghi rõ họ tên)</span>
+                <div style="height: 60px;"></div>
+                <strong>${empName}</strong>
+              </td>
+              ${!twoCols ? `
+              <td style="border: none; width: 33.3%; vertical-align: top;">
+                <strong>TỔ TRƯỞNG THẨM ĐỊNH</strong><br>
+                <span style="font-style: italic; font-size: 10.5pt;">(Ký số / Nhận xét & đánh giá)</span>
+                <div style="height: 60px;"></div>
+                <strong>${leadName}</strong>
+              </td>` : ''}
+              <td style="border: none; width: ${twoCols ? '50%' : '33.3%'}; vertical-align: top;">
+                <strong>HIỆU TRƯỞNG PHÊ DUYỆT</strong><br>
+                <span style="font-style: italic; font-size: 10.5pt;">(Ký số và đóng dấu điện tử)</span>
+                <div style="height: 60px;"></div>
+                <strong>Bùi Thị Thanh Hoàn</strong>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `;
+    }
+
+    // TẢI FILE PDF ĐỂ KÝ SỐ BẰNG ỨNG DỤNG KÝ SỐ
+    function downloadPDFForSign() {
+      const empName = document.getElementById("empName").value || "VienChuc";
+      const evalPeriod = (document.getElementById("evalPeriod").value || "Thang_9_2026").replace(/\//g, "_").replace(/\s+/g, "_");
+      const fileName = `KPI_915_${empName.replace(/\s+/g, "_")}_${evalPeriod}.pdf`;
+
+      const element = document.createElement("div");
+      element.innerHTML = generateOfficialReportHtml();
+
+      const opt = {
+        margin: [8, 8, 8, 8],
+        filename: fileName,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      showCustomModal("Đang tạo file PDF chất lượng cao, vui lòng chờ trong giây lát...");
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        showCustomModal(
+          `THÔNG BÁO:\n` +
+          `✅ Đã xuất và tải về file PDF thành công: [${fileName}]\n\n` +
+          `Thầy/Cô mở phần mềm hoặc ứng dụng Ký số (VNPT SmartCA, Viettel CA, USB Token,...) để ký số trực tiếp lên file PDF này và nộp lưu minh chứng!`
+        );
+      }).catch(err => {
+        showCustomModal("Lỗi khi kết xuất file PDF: " + err);
+      });
+    }
+
+    // XUẤT FILE WORD (.DOC)
+    function exportWordDoc() {
+      const empName = document.getElementById("empName").value || "VienChuc";
+      const evalPeriod = (document.getElementById("evalPeriod").value || "Thang_9_2026").replace(/\//g, "_").replace(/\s+/g, "_");
+      const fileName = `KPI_915_${empName.replace(/\s+/g, "_")}_${evalPeriod}.doc`;
+
+      const content = generateOfficialReportHtml();
+      const htmlHeader = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head><meta charset='utf-8'><title>Phiếu đánh giá KPI</title>
+        <style>
+          @page { size: A4; margin: 1.5cm 1.5cm 1.5cm 1.5cm; }
+          body { font-family: 'Times New Roman', serif; font-size: 13pt; }
+          table { border-collapse: collapse; width: 100%; }
+        </style>
+        </head><body>
+      `;
+      const htmlFooter = `</body></html>`;
+      const fullHtml = "\uFEFF" + htmlHeader + content + htmlFooter;
+
+      const blob = new Blob([fullHtml], { type: 'application/msword;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showCustomModal(
+        `THÔNG BÁO:\n` +
+        `✅ Đã xuất bản Word (.doc) thành công: [${fileName}]\n\n` +
+        `Thầy/Cô có thể mở bằng Microsoft Word để rà soát, lưu trữ hoặc chuyển đổi ký số theo yêu cầu của đơn vị!`
+      );
     }
   </script>
 </body>
