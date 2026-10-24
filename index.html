@@ -13,7 +13,7 @@
 
   <style>
     :root {
-      /* TÔNG MÀU XANH LỤC VÀ CAM CHỦ ĐẠO */
+      /* TÔNG MÀU XANH LAM VÀ CAM CHỦ ĐẠO */
       --green-dark: #064e3b;
       --green-main: #047857;
       --green-light: #059669;
@@ -1056,6 +1056,7 @@
             <option value="Nguyễn Thị Hà Giang">Nguyễn Thị Hà Giang</option>
             <option value="Nguyễn Thị Thu Hà">Nguyễn Thị Thu Hà</option>
             <option value="Phan Thị Hà">Phan Thị Hà</option>
+             <option value="Nguyễn Thị Hạnh">Nguyễn Thị Hạnh</option>
             <option value="Nguyễn Thị Hải">Nguyễn Thị Hải</option>
             <option value="Trần Thị Thanh Hải">Trần Thị Thanh Hải</option>
             <option value="Hoàng Thị Thu Hằng">Hoàng Thị Thu Hằng</option>
@@ -1078,7 +1079,6 @@
             <option value="Hoàng Thị Huệ">Hoàng Thị Huệ</option>
             <option value="Lưu Thị Huệ">Lưu Thị Huệ</option>
             <option value="Nguyễn Thị Minh Huệ">Nguyễn Thị Minh Huệ</option>
-            <option value="Cao Thu Hương">Cao Thu Hương</option>
             <option value="Dương Thị Hương">Dương Thị Hương</option>
             <option value="Dương Thu Hường">Dương Thu Hường</option>
             <option value="Lê Thanh Hương">Lê Thanh Hương</option>
@@ -1100,6 +1100,7 @@
             <option value="Ninh Thị Bích Lụa">Ninh Thị Bích Lụa</option>
             <option value="Dương Ngọc Mai">Dương Ngọc Mai</option>
             <option value="Phạm Thị Mơ">Phạm Thị Mơ</option>
+             <option value="Trần Thảo My">Trần Thảo My</option>
             <option value="Đinh Thị Thanh Nam">Đinh Thị Thanh Nam</option>
             <option value="Nguyễn Thị Nga">Nguyễn Thị Nga</option>
             <option value="Vi Thị Nga">Vi Thị Nga</option>
@@ -1121,6 +1122,7 @@
             <option value="Lê Thị Phương">Lê Thị Phương</option>
             <option value="Nguyễn Thị Thu Phương">Nguyễn Thị Thu Phương</option>
             <option value="Trần Lan Phương">Trần Lan Phương</option>
+            <option value="Nguyễn Thị Minh Phượng">Nguyễn Thị Minh Phượng</option>
             <option value="Trương Minh Quang">Trương Minh Quang</option>
             <option value="Bùi Văn Quý">Bùi Văn Quý</option>
             <option value="Trần Xuân Quý">Trần Xuân Quý</option>
@@ -1919,4 +1921,586 @@
       autoSave();
     }
 
-    function initDefaultScores
+    function initDefaultScores() {
+      currentScores = {};
+      activeBonuses.clear();
+      const cfg = KPI_ROLES[currentRoleKey] || KPI_ROLES["gvcn"];
+      cfg.items.forEach(item => {
+        currentScores[item.code] = { self: item.max, lead: item.max, bgh: item.max, note: "", files: [] };
+      });
+    }
+
+    function renderApp() {
+      const cfg = KPI_ROLES[currentRoleKey] || KPI_ROLES["gvcn"];
+      document.getElementById("tableHeaderTitle").textContent = cfg.title;
+
+      const twoCols = isTwoColumns();
+      const thLead = document.getElementById("th-lead");
+      const thSelf = document.getElementById("th-self");
+      const thBgh = document.getElementById("th-bgh");
+      const sigColLead = document.getElementById("sigColLead");
+      const sigGrid = document.getElementById("signatureGrid");
+
+      if (twoCols) {
+        thLead.style.display = "none";
+        thSelf.textContent = "1. Cá nhân tự đánh giá";
+        thBgh.textContent = isToTruong() ? "2. BGH phê duyệt" : "2. Hiệu trưởng phê duyệt";
+        if (sigColLead) sigColLead.style.display = "none";
+        if (sigGrid) sigGrid.style.gridTemplateColumns = "repeat(2, 1fr)";
+      } else {
+        thLead.style.display = "";
+        thSelf.textContent = "1. Tự chấm";
+        thLead.textContent = "2. Tổ thẩm định";
+        thBgh.textContent = "3. BGH duyệt";
+        if (sigColLead) sigColLead.style.display = "";
+        if (sigGrid) sigGrid.style.gridTemplateColumns = "repeat(3, 1fr)";
+      }
+
+      const tbody = document.getElementById("kpiTableBody");
+      tbody.innerHTML = "";
+
+      let currentPillar = null;
+      cfg.items.forEach(item => {
+        if (item.pillar !== currentPillar) {
+          currentPillar = item.pillar;
+          const headerTr = document.createElement("tr");
+          headerTr.innerHTML = `
+            <td colspan="${twoCols ? 6 : 7}" style="background: #f8fafc; font-weight: 800; color: var(--green-dark); padding: 8px 12px; text-transform: uppercase; border-left: 4px solid var(--orange-main);">
+              <i class="fa-solid fa-bookmark" style="color: var(--orange-main); margin-right: 6px;"></i> ${item.pillarName}
+            </td>
+          `;
+          tbody.appendChild(headerTr);
+        }
+
+        const scoreObj = currentScores[item.code] || { self: item.max, lead: item.max, bgh: item.max, note: "", files: [] };
+        const tr = document.createElement("tr");
+
+        const isSelfLocked = (currentWorkflow === 'lead' || currentWorkflow === 'ht' || currentWorkflow === 'bgh');
+        const isLeadActive = (currentWorkflow === 'lead');
+        const isBghActive = (currentWorkflow === 'ht' || currentWorkflow === 'bgh');
+
+        let filesHtml = "";
+        if (scoreObj.files && scoreObj.files.length > 0) {
+          filesHtml = scoreObj.files.map((f, fIdx) => `
+            <span class="file-tag">
+              <i class="fa-solid fa-file-lines"></i>
+              <span class="file-tag-name" title="${f.name}" onclick="previewFile('${item.code}', ${fIdx})">${f.name}</span>
+              ${!isSelfLocked ? `<span class="file-tag-remove" onclick="removeFile('${item.code}', ${fIdx})">✕</span>` : ''}
+            </span>
+          `).join("");
+        }
+
+        tr.innerHTML = `
+          <td style="text-align: center; vertical-align: middle;">
+            <span class="badge-code">${item.code}</span>
+          </td>
+          <td>
+            <strong style="color: #0f172a; font-size: 0.92rem;">${item.title}</strong>
+            <div class="rule-note">${item.note}</div>
+          </td>
+          <td style="text-align: center; vertical-align: middle; font-weight: 700; color: #475569;">
+            ${item.max}
+          </td>
+          <!-- 1. TỰ CHẤM -->
+          <td style="text-align: center; vertical-align: middle;">
+            <input type="number" step="0.5" min="0" max="${item.max}" 
+              class="input-score ${isSelfLocked ? 'locked-score' : ''}" 
+              id="score-self-${item.code}" value="${scoreObj.self !== undefined ? scoreObj.self : item.max}" 
+              ${isSelfLocked ? 'readonly title="Điểm tự chấm đã khóa"' : ''}
+              oninput="handleScoreChange('${item.code}', 'self', this.value, ${item.max})" />
+          </td>
+          <!-- 2. TỔ THẨM ĐỊNH -->
+          ${!twoCols ? `
+          <td style="text-align: center; vertical-align: middle;">
+            <input type="number" step="0.5" min="0" max="${item.max}" 
+              class="input-score ${isLeadActive ? 'highlight-lead' : (currentWorkflow === 'ht' || currentWorkflow === 'bgh' ? 'locked-score' : '')}" 
+              id="score-lead-${item.code}" value="${scoreObj.lead !== undefined ? scoreObj.lead : (scoreObj.self !== undefined ? scoreObj.self : item.max)}" 
+              ${currentWorkflow === 'ht' || currentWorkflow === 'bgh' ? 'readonly title="Điểm thẩm định đã khóa"' : ''}
+              oninput="handleScoreChange('${item.code}', 'lead', this.value, ${item.max})" />
+          </td>` : ''}
+          <!-- 3. BGH / HIỆU TRƯỞNG PHÊ DUYỆT -->
+          <td style="text-align: center; vertical-align: middle;">
+            <input type="number" step="0.5" min="0" max="${item.max}" 
+              class="input-score ${isBghActive ? 'highlight-bgh' : ''}" 
+              id="score-bgh-${item.code}" value="${scoreObj.bgh !== undefined ? scoreObj.bgh : (scoreObj.lead !== undefined ? scoreObj.lead : item.max)}" 
+              ${!isBghActive && currentWorkflow !== 'self' ? 'readonly' : ''}
+              oninput="handleScoreChange('${item.code}', 'bgh', this.value, ${item.max})" />
+          </td>
+          <!-- MINH CHỨNG & TỆP ĐÍNH KÈM -->
+          <td style="vertical-align: middle;">
+            <div class="evidence-cell">
+              <input type="text" class="input-text-sm" placeholder="Ghi chú / Link Driver, vnEdu..." 
+                value="${scoreObj.note || ''}" 
+                oninput="handleNoteChange('${item.code}', this.value)" />
+              <div class="file-attach-wrapper">
+                ${!isSelfLocked ? `
+                  <label class="btn-attach-file" title="Tải lên tệp ảnh, Word, Excel, PDF...">
+                    <i class="fa-solid fa-paperclip"></i> Đính kèm tệp
+                    <input type="file" multiple onchange="handleFileAttachment('${item.code}', this.files)" />
+                  </label>
+                ` : ''}
+                <div id="file-list-${item.code}" class="file-badge-list">${filesHtml}</div>
+              </div>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const bonusContainer = document.getElementById("bonusListContainer");
+      bonusContainer.innerHTML = "";
+      BONUS_KPI_LIST.forEach(b => {
+        const isChecked = activeBonuses.has(b.id);
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "bonus-item";
+        itemDiv.innerHTML = `
+          <input type="checkbox" id="chk-${b.id}" ${isChecked ? 'checked' : ''} onchange="toggleBonus('${b.id}', ${b.pts})">
+          <label for="chk-${b.id}" style="cursor: pointer; flex: 1;">
+            <div class="bonus-item-desc">${b.text}</div>
+          </label>
+          <div class="bonus-pts">+${b.pts}đ</div>
+        `;
+        bonusContainer.appendChild(itemDiv);
+      });
+
+      calculateTotals();
+    }
+
+    function handleFileAttachment(code, fileList) {
+      if (!fileList || fileList.length === 0) return;
+      if (!currentScores[code]) currentScores[code] = { self: 0, lead: 0, bgh: 0, note: "", files: [] };
+      if (!currentScores[code].files) currentScores[code].files = [];
+
+      Array.from(fileList).forEach(file => {
+        const fileObj = {
+          name: file.name,
+          size: (file.size / 1024).toFixed(1) + " KB",
+          type: file.type,
+          url: URL.createObjectURL(file)
+        };
+        currentScores[code].files.push(fileObj);
+      });
+
+      renderApp();
+      autoSave();
+    }
+
+    function removeFile(code, fIdx) {
+      if (currentScores[code] && currentScores[code].files) {
+        currentScores[code].files.splice(fIdx, 1);
+        renderApp();
+        autoSave();
+      }
+    }
+
+    function previewFile(code, fIdx) {
+      const f = currentScores[code].files[fIdx];
+      if (f && f.url) {
+        window.open(f.url, "_blank");
+      } else {
+        alert("Tệp minh chứng: " + f.name);
+      }
+    }
+
+    function handleScoreChange(code, roleKey, val, maxVal) {
+      let num = parseFloat(val);
+      if (isNaN(num)) num = 0;
+      if (num > maxVal) num = maxVal;
+      if (num < 0) num = 0;
+
+      if (!currentScores[code]) currentScores[code] = { self: maxVal, lead: maxVal, bgh: maxVal, note: "", files: [] };
+      currentScores[code][roleKey] = num;
+
+      calculateTotals();
+      autoSave();
+    }
+
+    function handleNoteChange(code, val) {
+      if (!currentScores[code]) currentScores[code] = { self: 0, lead: 0, bgh: 0, note: "", files: [] };
+      currentScores[code].note = val;
+      autoSave();
+    }
+
+    function toggleBonus(bonusId, pts) {
+      if (activeBonuses.has(bonusId)) {
+        activeBonuses.delete(bonusId);
+      } else {
+        activeBonuses.add(bonusId);
+      }
+      calculateTotals();
+      autoSave();
+    }
+
+    function calculateTotals() {
+      const cfg = KPI_ROLES[currentRoleKey] || KPI_ROLES["gvcn"];
+      let p1 = 0, p2 = 0;
+      let hasUnder70 = false;
+      let under70Items = [];
+
+      const evalColKey = (currentWorkflow === 'lead') ? 'lead' : ((currentWorkflow === 'ht' || currentWorkflow === 'bgh') ? 'bgh' : 'self');
+
+      cfg.items.forEach(item => {
+        const sc = (currentScores[item.code] && currentScores[item.code][evalColKey] !== undefined) 
+                   ? currentScores[item.code][evalColKey] : item.max;
+        if (sc < item.max * 0.7) {
+          hasUnder70 = true;
+          under70Items.push(`${item.code} (${sc}/${item.max}đ)`);
+        }
+        if (item.pillar === 1) p1 += sc;
+        else if (item.pillar === 2) p2 += sc;
+      });
+
+      let bonusScore = 0;
+      BONUS_KPI_LIST.forEach(b => {
+        if (activeBonuses.has(b.id)) bonusScore += b.pts;
+      });
+      if (bonusScore > 15) bonusScore = 15;
+
+      const totalStandard = p1 + p2;
+      let finalTotal = totalStandard + bonusScore;
+      if (finalTotal > 115) finalTotal = 115;
+
+      document.getElementById("val-col1").textContent = p1.toFixed(1);
+      document.getElementById("val-col2").textContent = p2.toFixed(1);
+      document.getElementById("val-bonus").textContent = bonusScore.toFixed(1);
+      document.getElementById("bonusScoreText").textContent = bonusScore.toFixed(1);
+      document.getElementById("val-total").textContent = finalTotal.toFixed(1);
+
+      const badge = document.getElementById("badge-rank");
+      let rank = "";
+      let badgeClass = "";
+
+      if (finalTotal >= 90) {
+        if (hasUnder70) {
+          rank = "Mức 2 (Hạ bậc do tiêu chí < 70%)";
+          badgeClass = "rank-b";
+        } else {
+          rank = "Mức 1 (Xuất sắc)";
+          badgeClass = "rank-a";
+        }
+      } else if (finalTotal >= 70) {
+        rank = "Mức 2 (Tốt)";
+        badgeClass = "rank-b";
+      } else if (finalTotal >= 50) {
+        rank = "Mức 3 (Đạt yêu cầu)";
+        badgeClass = "rank-c";
+      } else {
+        rank = "Mức 4 (Cần cố gắng)";
+        badgeClass = "rank-d";
+      }
+
+      badge.className = `rank-badge ${badgeClass}`;
+      badge.textContent = rank;
+    }
+
+    function quickFill100() {
+      const cfg = KPI_ROLES[currentRoleKey] || KPI_ROLES["gvcn"];
+      cfg.items.forEach(item => {
+        if (!currentScores[item.code]) currentScores[item.code] = { files: [] };
+        if (currentWorkflow === 'self') currentScores[item.code].self = item.max;
+        if (currentWorkflow === 'lead') currentScores[item.code].lead = item.max;
+        if (currentWorkflow === 'ht' || currentWorkflow === 'bgh') currentScores[item.code].bgh = item.max;
+      });
+      renderApp();
+      autoSave();
+    }
+
+    function resetForm() {
+      if (confirm("Chị có chắc chắn muốn làm mới lại dữ liệu chấm điểm?")) {
+        localStorage.removeItem("KPI_915_V2");
+        window.location.href = window.location.pathname;
+      }
+    }
+
+    function autoSave() {
+      const data = {
+        role: currentRoleKey,
+        empName: document.getElementById("empName").value,
+        empPosition: document.getElementById("empPosition").value,
+        empDepartment: document.getElementById("empDepartment").value,
+        evalPeriod: document.getElementById("evalPeriod").value,
+        scores: currentScores,
+        bonuses: Array.from(activeBonuses),
+        leadName: document.getElementById("leadApproverName").value
+      };
+      
+      if (currentWorkflow === "self") {
+        localStorage.setItem("KPI_915_V2", JSON.stringify(data));
+      } else {
+        localStorage.setItem(`KPI_915_${currentWorkflow.toUpperCase()}_SAVED`, JSON.stringify(data));
+      }
+    }
+
+    function loadSavedData() {
+      const raw = localStorage.getItem("KPI_915_V2");
+      if (raw) {
+        try {
+          const data = JSON.parse(raw);
+          if (data.role && KPI_ROLES[data.role]) currentRoleKey = data.role;
+          if (data.empName) {
+            document.getElementById("empName").value = data.empName;
+            document.getElementById("sigSelfName").textContent = data.empName;
+          }
+          if (data.empPosition) document.getElementById("empPosition").value = data.empPosition;
+          if (data.empDepartment) document.getElementById("empDepartment").value = data.empDepartment;
+          if (data.evalPeriod) document.getElementById("evalPeriod").value = data.evalPeriod;
+          if (data.scores) currentScores = data.scores;
+          if (data.bonuses) activeBonuses = new Set(data.bonuses);
+          if (data.leadName) document.getElementById("leadApproverName").value = data.leadName;
+
+          if (currentRoleKey.startsWith("bgh_")) {
+            currentMainTab = "bgh";
+            document.getElementById("bghSubRoleBox").style.display = "flex";
+            document.getElementById("bghPositionSelect").value = currentRoleKey.replace("bgh_", "");
+          } else if (currentRoleKey.startsWith("nv_")) {
+            currentMainTab = "nv";
+            document.getElementById("staffSubRoleBox").style.display = "flex";
+            document.getElementById("staffPositionSelect").value = currentRoleKey.replace("nv_", "");
+          } else {
+            currentMainTab = currentRoleKey;
+          }
+
+          document.querySelectorAll(".object-pill").forEach(el => el.classList.remove("active"));
+          const activePill = document.getElementById(`tab-${currentMainTab}`);
+          if (activePill) activePill.classList.add("active");
+          updateActionButtons();
+          return;
+        } catch (e) {}
+      }
+      initDefaultScores();
+    }
+
+    // ====================================================
+    // TRÌNH TẠO MÃ HTML BÁO CÁO PHỤC VỤ XUẤT PDF CHUẨN A4
+    // ====================================================
+    function generateOfficialReportHtml() {
+      const cfg = KPI_ROLES[currentRoleKey] || KPI_ROLES["gvcn"];
+      const twoCols = isTwoColumns();
+      const empName = document.getElementById("empName").value || "......................";
+      const empPosition = document.getElementById("empPosition").value || "......................";
+      const empDepartment = document.getElementById("empDepartment").value || "......................";
+      const evalPeriod = document.getElementById("evalPeriod").value || "Tháng 09/2026";
+      const valCol1 = document.getElementById("val-col1").textContent;
+      const valCol2 = document.getElementById("val-col2").textContent;
+      const valBonus = document.getElementById("val-bonus").textContent;
+      const valTotal = document.getElementById("val-total").textContent;
+      const rankText = document.getElementById("badge-rank").textContent;
+      const leadName = document.getElementById("leadApproverName").value || "......................";
+      const dateText = updatePrintDate();
+
+      let rowsHtml = "";
+      let currentPillar = null;
+
+      cfg.items.forEach(item => {
+        if (item.pillar !== currentPillar) {
+          currentPillar = item.pillar;
+          rowsHtml += `
+            <tr style="background-color: #f1f5f9; font-weight: bold;">
+              <td colspan="${twoCols ? 6 : 7}" style="padding: 7px 10px; text-transform: uppercase; color: #064e3b; border: 1px solid #333;">
+                ${item.pillarName}
+              </td>
+            </tr>
+          `;
+        }
+
+        const scoreObj = currentScores[item.code] || { self: item.max, lead: item.max, bgh: item.max, note: "", files: [] };
+        const cleanNote = (scoreObj.note || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        let attachFilesList = "";
+        if (scoreObj.files && scoreObj.files.length > 0) {
+          attachFilesList = "<br><strong>[Tệp đính kèm]:</strong> " + scoreObj.files.map(f => f.name).join("; ");
+        }
+
+        const selfVal = scoreObj.self !== undefined ? scoreObj.self : item.max;
+        const leadVal = scoreObj.lead !== undefined ? scoreObj.lead : item.max;
+        const bghVal = scoreObj.bgh !== undefined ? scoreObj.bgh : (scoreObj.lead !== undefined ? scoreObj.lead : item.max);
+
+        rowsHtml += `
+          <tr>
+            <td style="text-align: center; border: 1px solid #333; padding: 6px; font-weight: bold;">${item.code}</td>
+            <td style="border: 1px solid #333; padding: 6px;">
+              <strong>${item.title}</strong>
+              <div style="font-size: 11px; color: #444; margin-top: 3px;">${item.note}</div>
+            </td>
+            <td style="text-align: center; border: 1px solid #333; padding: 6px; font-weight: bold;">${item.max}</td>
+            <td style="text-align: center; border: 1px solid #333; padding: 6px; font-weight: bold;">${selfVal}</td>
+            ${!twoCols ? `<td style="text-align: center; border: 1px solid #333; padding: 6px; font-weight: bold;">${leadVal}</td>` : ''}
+            <td style="text-align: center; border: 1px solid #333; padding: 6px; font-weight: bold;">${bghVal}</td>
+            <td style="border: 1px solid #333; padding: 6px; font-size: 11px;">
+              ${cleanNote || "—"}
+              ${attachFilesList}
+            </td>
+          </tr>
+        `;
+      });
+
+      let bonusRowsHtml = "";
+      BONUS_KPI_LIST.forEach(b => {
+        if (activeBonuses.has(b.id)) {
+          bonusRowsHtml += `• ${b.text} (+${b.pts}đ)<br>`;
+        }
+      });
+      if (!bonusRowsHtml) bonusRowsHtml = "Không có điểm thưởng cống hiến trong kỳ.";
+
+      return `
+        <div style="font-family: 'Times New Roman', Times, serif; color: #000; padding: 15px 20px; line-height: 1.45; font-size: 13pt;">
+          <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 15px;">
+            <tr style="border: none;">
+              <td style="width: 45%; border: none; text-align: center; vertical-align: top;">
+                <span style="font-size: 11.5pt;">UBND PHƯỜNG GIA SÀNG</span><br>
+                <strong style="font-size: 12pt;">TRƯỜNG TIỂU HỌC VÀ THCS 915 GIA SÀNG</strong><br>
+                <span style="font-size: 11pt;">Số: ...../QĐ-TH&THCS915</span>
+                <div style="width: 110px; height: 1px; background: #000; margin: 4px auto 0;"></div>
+              </td>
+              <td style="width: 55%; border: none; text-align: center; vertical-align: top;">
+                <strong style="font-size: 12pt;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong><br>
+                <strong style="font-size: 12pt;">Độc lập - Tự do - Hạnh phúc</strong>
+                <div style="width: 150px; height: 1px; background: #000; margin: 4px auto 0;"></div>
+                <p style="font-style: italic; font-size: 11.5pt; margin-top: 5px;">${dateText}</p>
+              </td>
+            </tr>
+          </table>
+
+          <div style="text-align: center; margin: 20px 0 15px;">
+            <h2 style="font-size: 14pt; font-weight: bold; text-transform: uppercase; margin: 0 0 5px;">PHIẾU ĐÁNH GIÁ, XẾP LOẠI MỨC ĐỘ HOÀN THÀNH NHIỆM VỤ THEO CHỈ SỐ KPI</h2>
+            <p style="font-style: italic; font-size: 11pt; margin: 0;">(Ban hành kèm theo Quyết định số ...../QĐ-TH&THCS915 ngày 15/9/2026 của Hiệu trưởng)</p>
+          </div>
+
+          <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 12px; font-size: 12pt;">
+            <tr style="border: none;">
+              <td style="border: none; padding: 3px 0; width: 50%;"><strong>Họ và tên viên chức:</strong> ${empName}</td>
+              <td style="border: none; padding: 3px 0; width: 50%;"><strong>Chức vụ / Vị trí:</strong> ${empPosition}</td>
+            </tr>
+            <tr style="border: none;">
+              <td style="border: none; padding: 3px 0;"><strong>Tổ Chuyên môn / Bộ phận:</strong> ${empDepartment}</td>
+              <td style="border: none; padding: 3px 0;"><strong>Kỳ đánh giá:</strong> ${evalPeriod}</td>
+            </tr>
+          </table>
+
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 11.5pt; text-align: center;">
+            <tr style="background: #f1f5f9;">
+              <th style="border: 1px solid #333; padding: 6px;">Phần I: Tiêu chí chung</th>
+              <th style="border: 1px solid #333; padding: 6px;">Phần II: Chuyên môn VTVL</th>
+              <th style="border: 1px solid #333; padding: 6px;">Điểm thưởng (Bonus)</th>
+              <th style="border: 1px solid #333; padding: 6px;">Tổng điểm KPI (Max 115)</th>
+              <th style="border: 1px solid #333; padding: 6px;">Xếp loại thi đua</th>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #333; padding: 6px; font-weight: bold;">${valCol1} / 30 đ</td>
+              <td style="border: 1px solid #333; padding: 6px; font-weight: bold;">${valCol2} / 70 đ</td>
+              <td style="border: 1px solid #333; padding: 6px; font-weight: bold; color: #b45309;">+${valBonus} đ</td>
+              <td style="border: 1px solid #333; padding: 6px; font-weight: bold; font-size: 12pt; color: #064e3b;">${valTotal} / 115 đ</td>
+              <td style="border: 1px solid #333; padding: 6px; font-weight: bold;">${rankText}</td>
+            </tr>
+          </table>
+
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 10pt;">
+            <thead>
+              <tr style="background-color: #f1f5f9; text-align: center;">
+                <th style="width: 60px; border: 1px solid #333; padding: 6px;">Mã KPI</th>
+                <th style="border: 1px solid #333; padding: 6px;">Nội dung tiêu chí & Hướng dẫn định lượng</th>
+                <th style="width: 55px; border: 1px solid #333; padding: 6px;">Điểm chuẩn</th>
+                <th style="width: 65px; border: 1px solid #333; padding: 6px;">${twoCols ? 'Cá nhân tự chấm' : 'Tự chấm'}</th>
+                ${!twoCols ? `<th style="width: 65px; border: 1px solid #333; padding: 6px;">Tổ thẩm định</th>` : ''}
+                <th style="width: 65px; border: 1px solid #333; padding: 6px;">${twoCols ? (isToTruong() ? 'BGH duyệt' : 'Hiệu trưởng duyệt') : 'BGH duyệt'}</th>
+                <th style="width: 160px; border: 1px solid #333; padding: 6px;">Ghi chú & Minh chứng</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+
+          <div style="border: 1px dashed #444; padding: 8px 12px; font-size: 10.5pt; margin-bottom: 18px; border-radius: 4px;">
+            <strong>Kê khai thành tích điểm thưởng cống hiến vượt mức (Bonus KPI):</strong><br>
+            <span style="font-size: 10pt; color: #333;">${bonusRowsHtml}</span>
+          </div>
+
+          <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 25px; text-align: center; font-size: 12pt; page-break-inside: avoid;">
+            <tr style="border: none;">
+              <td style="border: none; width: ${twoCols ? '50%' : '33.3%'}; vertical-align: top;">
+                <strong>NGƯỜI TỰ ĐÁNH GIÁ</strong><br>
+                <span style="font-style: italic; font-size: 10.5pt;">(Ký số / Ký và ghi rõ họ tên)</span>
+                <div style="height: 60px;"></div>
+                <strong>${empName}</strong>
+              </td>
+              ${!twoCols ? `
+              <td style="border: none; width: 33.3%; vertical-align: top;">
+                <strong>TỔ TRƯỞNG THẨM ĐỊNH</strong><br>
+                <span style="font-style: italic; font-size: 10.5pt;">(Ký số / Nhận xét & đánh giá)</span>
+                <div style="height: 60px;"></div>
+                <strong>${leadName}</strong>
+              </td>` : ''}
+              <td style="border: none; width: ${twoCols ? '50%' : '33.3%'}; vertical-align: top;">
+                <strong>HIỆU TRƯỞNG PHÊ DUYỆT</strong><br>
+                <span style="font-style: italic; font-size: 10.5pt;">(Ký số và đóng dấu điện tử)</span>
+                <div style="height: 60px;"></div>
+                <strong>Bùi Thị Thanh Hoàn</strong>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `;
+    }
+
+    // TẢI FILE PDF KÝ SỐ (NEO VÀO DOM TRÁNH NGHẼN)
+    function downloadPDFForSign() {
+      const empName = document.getElementById("empName").value || "VienChuc";
+      const evalPeriod = (document.getElementById("evalPeriod").value || "Thang_09_2026").replace(/[\/\s]/g, "_");
+      const fileName = `KPI_915_${empName.replace(/\s+/g, "_")}_${evalPeriod}.pdf`;
+
+      showCustomModal("Đang khởi tạo và kết xuất file PDF chuẩn A4, vui lòng đợi trong giây lát...");
+
+      const tempContainer = document.createElement("div");
+      tempContainer.style.position = "absolute";
+      tempContainer.style.left = "-9999px";
+      tempContainer.style.top = "0";
+      tempContainer.style.width = "794px";
+      tempContainer.style.backgroundColor = "#ffffff";
+      tempContainer.innerHTML = generateOfficialReportHtml();
+      document.body.appendChild(tempContainer);
+
+      const opt = {
+        margin: [8, 8, 8, 8],
+        filename: fileName,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+          logging: false,
+          scrollY: 0,
+          scrollX: 0
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+      };
+
+      if (typeof html2pdf !== 'undefined') {
+        html2pdf().set(opt).from(tempContainer).save().then(() => {
+          if (document.body.contains(tempContainer)) {
+            document.body.removeChild(tempContainer);
+          }
+          showCustomModal(
+            `THÔNG BÁO:\n` +
+            `✅ Đã xuất và tải về file PDF thành công: [${fileName}]\n\n` +
+            `Thầy/Cô mở ứng dụng Ký số (VNPT SmartCA, Viettel CA, USB Token...) để ký số trực tiếp lên file PDF này và nộp lưu minh chứng!`
+          );
+        }).catch(err => {
+          if (document.body.contains(tempContainer)) {
+            document.body.removeChild(tempContainer);
+          }
+          console.error("Lỗi html2pdf:", err);
+          showCustomModal("Hệ thống chuyển sang chế độ in của trình duyệt. Thầy/Cô chọn 'Lưu dưới dạng PDF' tại ô Máy in để lưu file nhé!");
+          window.print();
+        });
+      } else {
+        if (document.body.contains(tempContainer)) {
+          document.body.removeChild(tempContainer);
+        }
+        showCustomModal("Hệ thống chuyển sang chế độ in của trình duyệt. Thầy/Cô chọn 'Lưu dưới dạng PDF' tại ô Máy in để lưu file nhé!");
+        window.print();
+      }
+    }
+  </script>
+</body>
+</html>
