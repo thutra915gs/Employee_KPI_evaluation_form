@@ -8,10 +8,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <!-- THƯ VIỆN KẾT XUẤT PDF CHUẨN A4 PHỤC VỤ KÝ SỐ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <style>
     :root {
-      /* TÔNG MÀU XANH DA TRỜI VÀ CAM CHỦ ĐẠO */
+      /* TÔNG MÀU XANH LỤC VÀ CAM CHỦ ĐẠO */
       --green-dark: #064e3b;
       --green-main: #047857;
       --green-light: #059669;
@@ -171,6 +173,16 @@
     .btn-white:hover {
       background: var(--orange-light);
       color: var(--orange-hover);
+    }
+
+    .btn-sign-pdf {
+      background: #fef08a;
+      color: #854d0e;
+      border: 1px solid #eab308;
+    }
+    .btn-sign-pdf:hover {
+      background: #fde047;
+      color: #713f12;
     }
 
     main {
@@ -915,6 +927,10 @@
         <!-- NÚT GỬI LINK ĐIỀU HƯỚNG THEO VỊ TRÍ VIỆC LÀM (TỰ ẨN KHI BGH NHẬN ĐƯỢC LINK) -->
         <button id="btnShareLead" class="btn btn-orange-primary" onclick="handleShareButtonAction()">
           <i class="fa-solid fa-share-nodes"></i> <span id="btnShareLeadText">Gửi link cho tổ trưởng</span>
+        </button>
+        <!-- NÚT XUẤT BÁO CÁO PHỤC VỤ KÝ SỐ VÀ NỘP MINH CHỨNG -->
+        <button class="btn btn-sign-pdf" onclick="downloadPDFForSign()" title="Xuất file PDF chuẩn A4 để tải lên ứng dụng Ký số (VNPT SmartCA, Viettel CA, USB Token...)">
+          <i class="fa-solid fa-file-pdf"></i> Tải về PDF
         </button>
         <button class="btn btn-orange-outline" onclick="window.print()" title="In ra giấy hoặc xem trước trang in">
           <i class="fa-solid fa-print"></i> In A4
@@ -1814,4 +1830,93 @@
         evalPeriod: document.getElementById("evalPeriod").value,
         scores: currentScores,
         bonuses: Array.from(activeBonuses),
-        leadName: document.getElementById("lead
+        leadName: document.getElementById("leadApproverName").value
+      };
+
+      if (!dataToPack.empName) {
+        showCustomModal("Vui lòng chọn họ và tên viên chức trước khi tạo link bàn giao!");
+        return;
+      }
+
+      if (currentWorkflow === "lead" && !dataToPack.leadName) {
+        showCustomModal("Đồng chí Tổ trưởng vui lòng nhập họ tên ở ô 'Tổ trưởng thẩm định' trước khi gửi cho Ban giám hiệu!");
+        document.getElementById("leadApproverName").focus();
+        return;
+      }
+
+      const encoded = encodeDataToUrl(dataToPack);
+      const fullUrl = `${window.location.origin}${window.location.pathname}?mode=${target}&d=${encoded}`;
+
+      navigator.clipboard.writeText(fullUrl).then(() => {
+        let msg = "";
+        if (target === "bgh") {
+          msg = "THÔNG BÁO:\nĐã sao chép link bàn giao thành công. Toàn bộ điểm số và tệp minh chứng đã được đóng gói an toàn. Đồng chí chỉ cần dán (Paste/Ctrl+V) gửi link này cho Ban giám hiệu.";
+        } else if (target === "ht") {
+          msg = "THÔNG BÁO:\nĐã sao chép link bàn giao thành công. Toàn bộ điểm số và tệp minh chứng đã được đóng gói an toàn. Đồng chí chỉ cần dán (Paste/Ctrl+V) gửi link này cho Hiệu trưởng.";
+        } else {
+          msg = "THÔNG BÁO:\nĐã sao chép link bàn giao thành công. Toàn bộ điểm số và tệp minh chứng đã được đóng gói an toàn. Đồng chí chỉ cần dán (Paste/Ctrl+V) gửi link này cho Tổ trưởng chuyên môn.";
+        }
+        showCustomModal(msg);
+      }).catch(() => {
+        prompt("Sao chép đường link bên dưới để gửi qua Zalo:", fullUrl);
+      });
+    }
+
+    function switchRole(tabType) {
+      currentMainTab = tabType;
+      document.querySelectorAll(".object-pill").forEach(el => el.classList.remove("active"));
+      document.getElementById(`tab-${tabType}`).classList.add("active");
+
+      const bghBox = document.getElementById("bghSubRoleBox");
+      const staffBox = document.getElementById("staffSubRoleBox");
+
+      if (tabType === "bgh") {
+        bghBox.style.display = "flex";
+        staffBox.style.display = "none";
+        const selectedBgh = document.getElementById("bghPositionSelect").value;
+        currentRoleKey = `bgh_${selectedBgh}`;
+        document.getElementById("empPosition").value = selectedBgh === "ht" ? "Hiệu trưởng" : "Phó Hiệu trưởng";
+        document.getElementById("empDepartment").value = "Ban Giám hiệu";
+      } else if (tabType === "nv") {
+        bghBox.style.display = "none";
+        staffBox.style.display = "flex";
+        const selectedStaff = document.getElementById("staffPositionSelect").value;
+        currentRoleKey = `nv_${selectedStaff}`;
+        document.getElementById("empPosition").value = document.getElementById("staffPositionSelect").selectedOptions[0].text;
+        document.getElementById("empDepartment").value = "Tổ Văn phòng";
+      } else {
+        bghBox.style.display = "none";
+        staffBox.style.display = "none";
+        currentRoleKey = tabType;
+        if (tabType === "gvcn") {
+          document.getElementById("empPosition").value = "Giáo viên chủ nhiệm";
+        } else {
+          document.getElementById("empPosition").value = "Giáo viên Tin học";
+        }
+      }
+
+      updateActionButtons();
+      initDefaultScores();
+      renderApp();
+      autoSave();
+    }
+
+    function switchBGHPosition(posKey) {
+      currentRoleKey = `bgh_${posKey}`;
+      document.getElementById("empPosition").value = posKey === "ht" ? "Hiệu trưởng" : "Phó Hiệu trưởng";
+      updateActionButtons();
+      initDefaultScores();
+      renderApp();
+      autoSave();
+    }
+
+    function switchStaffPosition(posKey) {
+      currentRoleKey = `nv_${posKey}`;
+      document.getElementById("empPosition").value = document.getElementById("staffPositionSelect").selectedOptions[0].text;
+      updateActionButtons();
+      initDefaultScores();
+      renderApp();
+      autoSave();
+    }
+
+    function initDefaultScores
