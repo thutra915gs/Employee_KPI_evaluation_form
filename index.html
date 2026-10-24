@@ -11,7 +11,7 @@
 
   <style>
     :root {
-      /* TÔNG MÀU XANH LỤC VÀ CAM CHỦ ĐẠO */
+      /* TÔNG MÀU XANH LAM VÀ CAM CHỦ ĐẠO */
       --green-dark: #064e3b;
       --green-main: #047857;
       --green-light: #059669;
@@ -957,7 +957,8 @@
             <strong>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong><br>
             <strong>Độc lập - Tự do - Hạnh phúc</strong>
             <div style="width: 140px; height: 1px; background: black; margin: 3px auto;"></div>
-            <p style="font-style: italic; font-size: 0.85em; margin-top: 3px;">Gia Sàng, ngày 15 tháng 9 năm 2026</p>
+            <!-- NGÀY THÁNG ĐƯỢC CẬP NHẬT TỰ ĐỘNG CHÍNH XÁC THEO THỜI ĐIỂM ĐÁNH GIÁ -->
+            <p id="printCurrentDate" style="font-style: italic; font-size: 0.85em; margin-top: 3px;"></p>
           </td>
         </tr>
       </table>
@@ -1329,6 +1330,18 @@
       }
     }
 
+    // TỰ ĐỘNG LẤY NGÀY THÁNG HIỆN TẠI CHO BẢN IN A4
+    function updatePrintDate() {
+      const now = new Date();
+      const d = now.getDate();
+      const m = now.getMonth() + 1;
+      const y = now.getFullYear();
+      const dateText = `Gia Sàng, ngày ${d < 10 ? '0' + d : d} tháng ${m < 10 ? '0' + m : m} năm ${y}`;
+      const el = document.getElementById("printCurrentDate");
+      if (el) el.textContent = dateText;
+      return dateText;
+    }
+
     function showCustomModal(msg) {
       document.getElementById("customModalMessage").innerHTML = msg;
       document.getElementById("customModal").style.display = "flex";
@@ -1670,12 +1683,17 @@
     }
 
     window.addEventListener("DOMContentLoaded", () => {
+      updatePrintDate();
       const isFromUrl = checkUrlWorkflow();
       if (!isFromUrl) {
         loadSavedData();
       }
       updateActionButtons();
       renderApp();
+    });
+
+    window.addEventListener("beforeprint", () => {
+      updatePrintDate();
     });
 
     function checkUrlWorkflow() {
@@ -1796,443 +1814,4 @@
         evalPeriod: document.getElementById("evalPeriod").value,
         scores: currentScores,
         bonuses: Array.from(activeBonuses),
-        leadName: document.getElementById("leadApproverName").value
-      };
-
-      if (!dataToPack.empName) {
-        showCustomModal("Vui lòng chọn họ và tên viên chức trước khi tạo link bàn giao!");
-        return;
-      }
-
-      if (currentWorkflow === "lead" && !dataToPack.leadName) {
-        showCustomModal("Đồng chí Tổ trưởng vui lòng nhập họ tên ở ô 'Tổ trưởng thẩm định' trước khi gửi cho Ban giám hiệu!");
-        document.getElementById("leadApproverName").focus();
-        return;
-      }
-
-      const encoded = encodeDataToUrl(dataToPack);
-      const fullUrl = `${window.location.origin}${window.location.pathname}?mode=${target}&d=${encoded}`;
-
-      navigator.clipboard.writeText(fullUrl).then(() => {
-        let msg = "";
-        if (target === "bgh") {
-          msg = "THÔNG BÁO:\nĐã sao chép link bàn giao thành công. Toàn bộ điểm số và tệp minh chứng đã được đóng gói an toàn. Đồng chí chỉ cần dán (Paste/Ctrl+V) gửi link này cho Ban giám hiệu.";
-        } else if (target === "ht") {
-          msg = "THÔNG BÁO:\nĐã sao chép link bàn giao thành công. Toàn bộ điểm số và tệp minh chứng đã được đóng gói an toàn. Đồng chí chỉ cần dán (Paste/Ctrl+V) gửi link này cho Hiệu trưởng.";
-        } else {
-          msg = "THÔNG BÁO:\nĐã sao chép link bàn giao thành công. Toàn bộ điểm số và tệp minh chứng đã được đóng gói an toàn. Đồng chí chỉ cần dán (Paste/Ctrl+V) gửi link này cho Tổ trưởng chuyên môn.";
-        }
-        showCustomModal(msg);
-      }).catch(() => {
-        prompt("Sao chép đường link bên dưới để gửi qua Zalo:", fullUrl);
-      });
-    }
-
-    function switchRole(tabType) {
-      currentMainTab = tabType;
-      document.querySelectorAll(".object-pill").forEach(el => el.classList.remove("active"));
-      document.getElementById(`tab-${tabType}`).classList.add("active");
-
-      const bghBox = document.getElementById("bghSubRoleBox");
-      const staffBox = document.getElementById("staffSubRoleBox");
-
-      if (tabType === "bgh") {
-        bghBox.style.display = "flex";
-        staffBox.style.display = "none";
-        const selectedBgh = document.getElementById("bghPositionSelect").value;
-        currentRoleKey = `bgh_${selectedBgh}`;
-        document.getElementById("empPosition").value = selectedBgh === "ht" ? "Hiệu trưởng" : "Phó Hiệu trưởng";
-        document.getElementById("empDepartment").value = "Ban Giám hiệu";
-      } else if (tabType === "nv") {
-        bghBox.style.display = "none";
-        staffBox.style.display = "flex";
-        const selectedStaff = document.getElementById("staffPositionSelect").value;
-        currentRoleKey = `nv_${selectedStaff}`;
-        document.getElementById("empPosition").value = document.getElementById("staffPositionSelect").selectedOptions[0].text;
-        document.getElementById("empDepartment").value = "Tổ Văn phòng";
-      } else {
-        bghBox.style.display = "none";
-        staffBox.style.display = "none";
-        currentRoleKey = tabType;
-        if (tabType === "gvcn") {
-          document.getElementById("empPosition").value = "Giáo viên chủ nhiệm";
-        } else {
-          document.getElementById("empPosition").value = "Giáo viên Tin học";
-        }
-      }
-
-      updateActionButtons();
-      initDefaultScores();
-      renderApp();
-      autoSave();
-    }
-
-    function switchBGHPosition(posKey) {
-      currentRoleKey = `bgh_${posKey}`;
-      document.getElementById("empPosition").value = posKey === "ht" ? "Hiệu trưởng" : "Phó Hiệu trưởng";
-      updateActionButtons();
-      initDefaultScores();
-      renderApp();
-      autoSave();
-    }
-
-    function switchStaffPosition(posKey) {
-      currentRoleKey = `nv_${posKey}`;
-      document.getElementById("empPosition").value = document.getElementById("staffPositionSelect").selectedOptions[0].text;
-      updateActionButtons();
-      initDefaultScores();
-      renderApp();
-      autoSave();
-    }
-
-    function initDefaultScores() {
-      currentScores = {};
-      activeBonuses.clear();
-      const cfg = KPI_ROLES[currentRoleKey] || KPI_ROLES["gvcn"];
-      cfg.items.forEach(item => {
-        currentScores[item.code] = { self: item.max, lead: item.max, bgh: item.max, note: "", files: [] };
-      });
-    }
-
-    function renderApp() {
-      const cfg = KPI_ROLES[currentRoleKey] || KPI_ROLES["gvcn"];
-      document.getElementById("tableHeaderTitle").textContent = cfg.title;
-
-      const twoCols = isTwoColumns();
-      const thLead = document.getElementById("th-lead");
-      const thSelf = document.getElementById("th-self");
-      const thBgh = document.getElementById("th-bgh");
-      const sigColLead = document.getElementById("sigColLead");
-      const sigGrid = document.getElementById("signatureGrid");
-
-      if (twoCols) {
-        thLead.style.display = "none";
-        thSelf.textContent = "1. Cá nhân tự đánh giá";
-        thBgh.textContent = isToTruong() ? "2. BGH phê duyệt" : "2. Hiệu trưởng phê duyệt";
-        if (sigColLead) sigColLead.style.display = "none";
-        if (sigGrid) sigGrid.style.gridTemplateColumns = "repeat(2, 1fr)";
-      } else {
-        thLead.style.display = "";
-        thSelf.textContent = "1. Tự chấm";
-        thLead.textContent = "2. Tổ thẩm định";
-        thBgh.textContent = "3. BGH duyệt";
-        if (sigColLead) sigColLead.style.display = "";
-        if (sigGrid) sigGrid.style.gridTemplateColumns = "repeat(3, 1fr)";
-      }
-
-      const tbody = document.getElementById("kpiTableBody");
-      tbody.innerHTML = "";
-
-      let currentPillar = null;
-      cfg.items.forEach(item => {
-        if (item.pillar !== currentPillar) {
-          currentPillar = item.pillar;
-          const headerTr = document.createElement("tr");
-          headerTr.innerHTML = `
-            <td colspan="${twoCols ? 6 : 7}" style="background: #f8fafc; font-weight: 800; color: var(--green-dark); padding: 8px 12px; text-transform: uppercase; border-left: 4px solid var(--orange-main);">
-              <i class="fa-solid fa-bookmark" style="color: var(--orange-main); margin-right: 6px;"></i> ${item.pillarName}
-            </td>
-          `;
-          tbody.appendChild(headerTr);
-        }
-
-        const scoreObj = currentScores[item.code] || { self: item.max, lead: item.max, bgh: item.max, note: "", files: [] };
-        const tr = document.createElement("tr");
-
-        const isSelfLocked = (currentWorkflow === 'lead' || currentWorkflow === 'ht' || currentWorkflow === 'bgh');
-        const isLeadActive = (currentWorkflow === 'lead');
-        const isBghActive = (currentWorkflow === 'ht' || currentWorkflow === 'bgh');
-
-        let filesHtml = "";
-        if (scoreObj.files && scoreObj.files.length > 0) {
-          filesHtml = scoreObj.files.map((f, fIdx) => `
-            <span class="file-tag">
-              <i class="fa-solid fa-file-lines"></i>
-              <span class="file-tag-name" title="${f.name}" onclick="previewFile('${item.code}', ${fIdx})">${f.name}</span>
-              ${!isSelfLocked ? `<span class="file-tag-remove" onclick="removeFile('${item.code}',${fIdx})">✕</span>` : ''}
-            </span>
-          `).join("");
-        }
-
-        tr.innerHTML = `
-          <td style="text-align: center; vertical-align: middle;">
-            <span class="badge-code">${item.code}</span>
-          </td>
-          <td>
-            <strong style="color: #0f172a; font-size: 0.92rem;">${item.title}</strong>
-            <div class="rule-note">${item.note}</div>
-          </td>
-          <td style="text-align: center; vertical-align: middle; font-weight: 700; color: #475569;">
-            ${item.max}
-          </td>
-          <!-- 1. TỰ CHẤM -->
-          <td style="text-align: center; vertical-align: middle;">
-            <input type="number" step="0.5" min="0" max="${item.max}" 
-              class="input-score ${isSelfLocked ? 'locked-score' : ''}" 
-              id="score-self-${item.code}" value="${scoreObj.self !== undefined ? scoreObj.self : item.max}" 
-              ${isSelfLocked ? 'readonly title="Điểm tự chấm đã khóa"' : ''}
-              oninput="handleScoreChange('${item.code}', 'self', this.value, ${item.max})" />
-          </td>
-          <!-- 2. TỔ THẨM ĐỊNH -->
-          ${!twoCols ? `
-          <td style="text-align: center; vertical-align: middle;">
-            <input type="number" step="0.5" min="0" max="${item.max}" 
-              class="input-score ${isLeadActive ? 'highlight-lead' : (currentWorkflow === 'ht' || currentWorkflow === 'bgh' ? 'locked-score' : '')}" 
-              id="score-lead-${item.code}" value="${scoreObj.lead !== undefined ? scoreObj.lead : (scoreObj.self !== undefined ? scoreObj.self : item.max)}" 
-              ${currentWorkflow === 'ht' || currentWorkflow === 'bgh' ? 'readonly title="Điểm thẩm định đã khóa"' : ''}
-              oninput="handleScoreChange('${item.code}', 'lead', this.value, ${item.max})" />
-          </td>` : ''}
-          <!-- 3. BGH / HIỆU TRƯỞNG PHÊ DUYỆT -->
-          <td style="text-align: center; vertical-align: middle;">
-            <input type="number" step="0.5" min="0" max="${item.max}" 
-              class="input-score ${isBghActive ? 'highlight-bgh' : ''}" 
-              id="score-bgh-${item.code}" value="${scoreObj.bgh !== undefined ? scoreObj.bgh : (scoreObj.lead !== undefined ? scoreObj.lead : item.max)}" 
-              ${!isBghActive && currentWorkflow !== 'self' ? 'readonly' : ''}
-              oninput="handleScoreChange('${item.code}', 'bgh', this.value, ${item.max})" />
-          </td>
-          <!-- MINH CHỨNG & TỆP ĐÍNH KÈM -->
-          <td style="vertical-align: middle;">
-            <div class="evidence-cell">
-              <input type="text" class="input-text-sm" placeholder="Ghi chú / Link Driver, vnEdu..." 
-                value="${scoreObj.note || ''}" 
-                oninput="handleNoteChange('${item.code}', this.value)" />
-              <div class="file-attach-wrapper">
-                ${!isSelfLocked ? `
-                  <label class="btn-attach-file" title="Tải lên tệp ảnh, Word, Excel, PDF...">
-                    <i class="fa-solid fa-paperclip"></i> Đính kèm tệp
-                    <input type="file" multiple onchange="handleFileAttachment('${item.code}', this.files)" />
-                  </label>
-                ` : ''}
-                <div id="file-list-${item.code}" class="file-badge-list">${filesHtml}</div>
-              </div>
-            </div>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      const bonusContainer = document.getElementById("bonusListContainer");
-      bonusContainer.innerHTML = "";
-      BONUS_KPI_LIST.forEach(b => {
-        const isChecked = activeBonuses.has(b.id);
-        const itemDiv = document.createElement("div");
-        itemDiv.className = "bonus-item";
-        itemDiv.innerHTML = `
-          <input type="checkbox" id="chk-${b.id}" ${isChecked ? 'checked' : ''} onchange="toggleBonus('${b.id}', ${b.pts})">
-          <label for="chk-${b.id}" style="cursor: pointer; flex: 1;">
-            <div class="bonus-item-desc">${b.text}</div>
-          </label>
-          <div class="bonus-pts">+${b.pts}đ</div>
-        `;
-        bonusContainer.appendChild(itemDiv);
-      });
-
-      calculateTotals();
-    }
-
-    function handleFileAttachment(code, fileList) {
-      if (!fileList || fileList.length === 0) return;
-      if (!currentScores[code]) currentScores[code] = { self: 0, lead: 0, bgh: 0, note: "", files: [] };
-      if (!currentScores[code].files) currentScores[code].files = [];
-
-      Array.from(fileList).forEach(file => {
-        const fileObj = {
-          name: file.name,
-          size: (file.size / 1024).toFixed(1) + " KB",
-          type: file.type,
-          url: URL.createObjectURL(file)
-        };
-        currentScores[code].files.push(fileObj);
-      });
-
-      renderApp();
-      autoSave();
-    }
-
-    function removeFile(code, fIdx) {
-      if (currentScores[code] && currentScores[code].files) {
-        currentScores[code].files.splice(fIdx, 1);
-        renderApp();
-        autoSave();
-      }
-    }
-
-    function previewFile(code, fIdx) {
-      const f = currentScores[code].files[fIdx];
-      if (f && f.url) {
-        window.open(f.url, "_blank");
-      } else {
-        alert("Tệp minh chứng: " + f.name);
-      }
-    }
-
-    function handleScoreChange(code, roleKey, val, maxVal) {
-      let num = parseFloat(val);
-      if (isNaN(num)) num = 0;
-      if (num > maxVal) num = maxVal;
-      if (num < 0) num = 0;
-
-      if (!currentScores[code]) currentScores[code] = { self: maxVal, lead: maxVal, bgh: maxVal, note: "", files: [] };
-      currentScores[code][roleKey] = num;
-
-      calculateTotals();
-      autoSave();
-    }
-
-    function handleNoteChange(code, val) {
-      if (!currentScores[code]) currentScores[code] = { self: 0, lead: 0, bgh: 0, note: "", files: [] };
-      currentScores[code].note = val;
-      autoSave();
-    }
-
-    function toggleBonus(bonusId, pts) {
-      if (activeBonuses.has(bonusId)) {
-        activeBonuses.delete(bonusId);
-      } else {
-        activeBonuses.add(bonusId);
-      }
-      calculateTotals();
-      autoSave();
-    }
-
-    function calculateTotals() {
-      const cfg = KPI_ROLES[currentRoleKey] || KPI_ROLES["gvcn"];
-      let p1 = 0, p2 = 0;
-      let hasUnder70 = false;
-      let under70Items = [];
-
-      const evalColKey = (currentWorkflow === 'lead') ? 'lead' : ((currentWorkflow === 'ht' || currentWorkflow === 'bgh') ? 'bgh' : 'self');
-
-      cfg.items.forEach(item => {
-        const sc = (currentScores[item.code] && currentScores[item.code][evalColKey] !== undefined) 
-                   ? currentScores[item.code][evalColKey] : item.max;
-        if (sc < item.max * 0.7) {
-          hasUnder70 = true;
-          under70Items.push(`${item.code} (${sc}/${item.max}đ)`);
-        }
-        if (item.pillar === 1) p1 += sc;
-        else if (item.pillar === 2) p2 += sc;
-      });
-
-      let bonusScore = 0;
-      BONUS_KPI_LIST.forEach(b => {
-        if (activeBonuses.has(b.id)) bonusScore += b.pts;
-      });
-      if (bonusScore > 15) bonusScore = 15;
-
-      const totalStandard = p1 + p2;
-      let finalTotal = totalStandard + bonusScore;
-      if (finalTotal > 115) finalTotal = 115;
-
-      document.getElementById("val-col1").textContent = p1.toFixed(1);
-      document.getElementById("val-col2").textContent = p2.toFixed(1);
-      document.getElementById("val-bonus").textContent = bonusScore.toFixed(1);
-      document.getElementById("bonusScoreText").textContent = bonusScore.toFixed(1);
-      document.getElementById("val-total").textContent = finalTotal.toFixed(1);
-
-      const badge = document.getElementById("badge-rank");
-      let rank = "";
-      let badgeClass = "";
-
-      if (finalTotal >= 90) {
-        if (hasUnder70) {
-          rank = "Mức 2 (Hạ bậc do tiêu chí < 70%)";
-          badgeClass = "rank-b";
-        } else {
-          rank = "Mức 1 (Xuất sắc)";
-          badgeClass = "rank-a";
-        }
-      } else if (finalTotal >= 70) {
-        rank = "Mức 2 (Tốt)";
-        badgeClass = "rank-b";
-      } else if (finalTotal >= 50) {
-        rank = "Mức 3 (Đạt yêu cầu)";
-        badgeClass = "rank-c";
-      } else {
-        rank = "Mức 4 (Cần cố gắng)";
-        badgeClass = "rank-d";
-      }
-
-      badge.className = `rank-badge ${badgeClass}`;
-      badge.textContent = rank;
-    }
-
-    function quickFill100() {
-      const cfg = KPI_ROLES[currentRoleKey] || KPI_ROLES["gvcn"];
-      cfg.items.forEach(item => {
-        if (!currentScores[item.code]) currentScores[item.code] = { files: [] };
-        if (currentWorkflow === 'self') currentScores[item.code].self = item.max;
-        if (currentWorkflow === 'lead') currentScores[item.code].lead = item.max;
-        if (currentWorkflow === 'ht' || currentWorkflow === 'bgh') currentScores[item.code].bgh = item.max;
-      });
-      renderApp();
-      autoSave();
-    }
-
-    function resetForm() {
-      if (confirm("Chị có chắc chắn muốn làm mới lại dữ liệu chấm điểm?")) {
-        localStorage.removeItem("KPI_915_V2");
-        window.location.href = window.location.pathname;
-      }
-    }
-
-    function autoSave() {
-      const data = {
-        role: currentRoleKey,
-        empName: document.getElementById("empName").value,
-        empPosition: document.getElementById("empPosition").value,
-        empDepartment: document.getElementById("empDepartment").value,
-        evalPeriod: document.getElementById("evalPeriod").value,
-        scores: currentScores,
-        bonuses: Array.from(activeBonuses),
-        leadName: document.getElementById("leadApproverName").value
-      };
-      
-      if (currentWorkflow === "self") {
-        localStorage.setItem("KPI_915_V2", JSON.stringify(data));
-      } else {
-        localStorage.setItem(`KPI_915_${currentWorkflow.toUpperCase()}_SAVED`, JSON.stringify(data));
-      }
-    }
-
-    function loadSavedData() {
-      const raw = localStorage.getItem("KPI_915_V2");
-      if (raw) {
-        try {
-          const data = JSON.parse(raw);
-          if (data.role && KPI_ROLES[data.role]) currentRoleKey = data.role;
-          if (data.empName) {
-            document.getElementById("empName").value = data.empName;
-            document.getElementById("sigSelfName").textContent = data.empName;
-          }
-          if (data.empPosition) document.getElementById("empPosition").value = data.empPosition;
-          if (data.empDepartment) document.getElementById("empDepartment").value = data.empDepartment;
-          if (data.evalPeriod) document.getElementById("evalPeriod").value = data.evalPeriod;
-          if (data.scores) currentScores = data.scores;
-          if (data.bonuses) activeBonuses = new Set(data.bonuses);
-          if (data.leadName) document.getElementById("leadApproverName").value = data.leadName;
-
-          if (currentRoleKey.startsWith("bgh_")) {
-            currentMainTab = "bgh";
-            document.getElementById("bghSubRoleBox").style.display = "flex";
-            document.getElementById("bghPositionSelect").value = currentRoleKey.replace("bgh_", "");
-          } else if (currentRoleKey.startsWith("nv_")) {
-            currentMainTab = "nv";
-            document.getElementById("staffSubRoleBox").style.display = "flex";
-            document.getElementById("staffPositionSelect").value = currentRoleKey.replace("nv_", "");
-          } else {
-            currentMainTab = currentRoleKey;
-          }
-
-          document.querySelectorAll(".object-pill").forEach(el => el.classList.remove("active"));
-          const activePill = document.getElementById(`tab-${currentMainTab}`);
-          if (activePill) activePill.classList.add("active");
-          updateActionButtons();
-          return;
-        } catch (e) {}
-      }
-      initDefaultScores();
-    }
-  </script>
-</body>
-</html>
+        leadName: document.getElementById("lead
